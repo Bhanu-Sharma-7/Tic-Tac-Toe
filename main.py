@@ -1,159 +1,88 @@
-"""
-Tic-Tac-Toe: The Ultimate Edition 2.0
-- Gorgeous visual presentation
-- Human vs Human or Human vs AI
-- Robust error handling
-- Scoreboard tracking
-"""
-
-from typing import List, Tuple, Optional
-import sys
-from time import sleep
 import random
+from typing import List, Tuple, Optional
 
 class TicTacToe:
-    WINNING_LINES: List[Tuple[int, int, int]] = [
+    WINNING_LINES = [
         (0, 1, 2), (3, 4, 5), (6, 7, 8),  # Rows
         (0, 3, 6), (1, 4, 7), (2, 5, 8),  # Columns
         (0, 4, 8), (2, 4, 6)              # Diagonals
     ]
     
-    PLAYER_MARKS = ("❌", "⭕")
-    COLOR_CODES = {"❌": "\033[91m", "⭕": "\033[94m", "reset": "\033[0m"}
-    BOARD_SIZE = 9
-
-    def __init__(self, vs_ai=False) -> None:
-        self.board: List[str] = [str(i) for i in range(1, 10)]
-        self.current_player: str = self.PLAYER_MARKS[0]
-        self.game_active: bool = True
-        self.round: int = 1
-        self.scores = {self.PLAYER_MARKS[0]: 0, self.PLAYER_MARKS[1]: 0, "tie": 0}
+    def __init__(self, vs_ai=False):
+        self.board = [str(i) for i in range(1, 10)]
+        self.players = ('X', 'O')
+        self.current_player = 0
+        self.scores = {'X': 0, 'O': 0, 'tie': 0}
         self.vs_ai = vs_ai
+        self.game_active = True
 
-    def display_header(self) -> None:
-        print("\n\033[1;36m" + "✨" * 25)
-        print(f"✨  TIC-TAC-TOE • Round {self.round}  ✨")
-        print("✨" * 25 + "\033[0m")
-        print(f"\033[1;35mScore — {self.PLAYER_MARKS[0]}: {self.scores[self.PLAYER_MARKS[0]]} | "
-              f"{self.PLAYER_MARKS[1]}: {self.scores[self.PLAYER_MARKS[1]]} | Ties: {self.scores['tie']}\033[0m")
-
-    def display_board(self) -> None:
-        self.display_header()
-        print("\033[1;37m" + "╔═══╦═══╦═══╗")
+    def display_board(self):
+        print(f"\nRound: {sum(self.scores.values()) + 1}")
+        print(f"Scores - X: {self.scores['X']} | O: {self.scores['O']} | Ties: {self.scores['tie']}")
         for i in range(0, 9, 3):
-            row = []
-            for j in range(3):
-                cell = self.board[i+j]
-                if cell in self.PLAYER_MARKS:
-                    row.append(f"{self.COLOR_CODES[cell]}{cell}{self.COLOR_CODES['reset']}")
-                else:
-                    row.append(f"\033[1;37m{cell}\033[0m")
-            print("║ " + " ║ ".join(row) + " ║")
-            if i < 6:
-                print("╠═══╬═══╬═══╣")
-        print("╚═══╩═══╩═══╝\033[0m")
+            print(" | ".join(self.board[i:i+3]))
+            if i < 6: print("---------")
 
-    def validate_move(self, position: int) -> bool:
-        return 1 <= position <= 9 and self.board[position-1] not in self.PLAYER_MARKS
-
-    def make_move(self, position: int) -> None:
-        if not self.validate_move(position):
-            raise ValueError("Invalid position. Choose an unoccupied number (1-9).")
-        self.board[position-1] = self.current_player
+    def make_move(self, pos: int):
+        if 1 <= pos <= 9 and self.board[pos-1] not in self.players:
+            self.board[pos-1] = self.players[self.current_player]
+            return True
+        return False
 
     def check_winner(self) -> Optional[str]:
         for a, b, c in self.WINNING_LINES:
-            if self.board[a] == self.board[b] == self.board[c] in self.PLAYER_MARKS:
+            if self.board[a] == self.board[b] == self.board[c] in self.players:
                 self.game_active = False
                 return self.board[a]
-        if all(cell in self.PLAYER_MARKS for cell in self.board):
+        if all(cell in self.players for cell in self.board):
             self.game_active = False
-            return "tie"
+            return 'tie'
         return None
 
-    def switch_player(self) -> None:
-        sleep(0.5)
-        self.current_player = self.PLAYER_MARKS[1] if self.current_player == self.PLAYER_MARKS[0] else self.PLAYER_MARKS[0]
+    def ai_move(self):
+        available = [i+1 for i, cell in enumerate(self.board) if cell not in self.players]
+        return random.choice(available) if available else None
 
-    def ai_move(self) -> None:
-        available_moves = [i+1 for i, cell in enumerate(self.board) if cell not in self.PLAYER_MARKS]
-        self.make_move(random.choice(available_moves))
-
-    def reset_game(self) -> None:
+    def reset(self):
         self.board = [str(i) for i in range(1, 10)]
-        self.current_player = self.PLAYER_MARKS[0]
         self.game_active = True
-        self.round += 1
 
-    def show_help(self) -> None:
-        print("\n\033[1;35mHOW TO PLAY:")
-        print("• Choose a number (1-9) for your move")
-        print("• First to get 3 in a row wins")
-        print("• Commands: 'help', 'exit', 'restart'\033[0m")
-
-    def play(self) -> None:
-        print("\033[2J\033[H")
-        print("\033[1;35m" + "🌟" * 30)
-        print("🌟   WELCOME TO TIC-TAC-TOE ULTIMATE   🌟")
-        print("🌟" * 30 + "\033[0m")
-        self.show_help()
-        
+    def play(self):
+        print("Tic-Tac-Toe - X goes first")
         while True:
-            try:
-                while self.game_active:
-                    self.display_board()
-                    
-                    if self.vs_ai and self.current_player == self.PLAYER_MARKS[1]:
-                        print("\n\033[1;33mAI is thinking...\033[0m")
-                        sleep(0.7)
-                        self.ai_move()
-                    else:
-                        choice = input(f"\n\033[1;32mPlayer {self.current_player}'s turn [1-9]: \033[0m").strip().lower()
-                        if choice in ('exit', 'quit'):
-                            print("\n\033[1;33mThanks for playing! Goodbye.\033[0m")
-                            sys.exit(0)
-                        elif choice == 'help':
-                            self.show_help()
-                            continue
-                        elif choice == 'restart':
-                            self.reset_game()
-                            continue
-                        elif not choice.isdigit():
-                            print("\n\033[1;31m⚠️ Enter a valid number!\033[0m")
-                            continue
-                        
-                        self.make_move(int(choice))
-                    
-                    result = self.check_winner()
-                    if result:
-                        self.display_board()
-                        if result == "tie":
-                            print("\n\033[1;33m🤝 It's a tie!\033[0m")
-                            self.scores["tie"] += 1
-                        else:
-                            print(f"\n\033[1;32m🎉 Player {result} wins! 🎉\033[0m")
-                            self.scores[result] += 1
-                    else:
-                        self.switch_player()
-                
-                play_again = input("\n\033[1;36mPlay again? (y/n): \033[0m").lower()
-                if play_again == 'y':
-                    self.reset_game()
-                    continue
-                else:
-                    print("\n\033[1;35mThanks for playing! 👋\033[0m")
+            self.display_board()
+            
+            if self.vs_ai and self.current_player == 1:
+                move = self.ai_move()
+                print(f"AI plays at position {move}")
+            else:
+                move = input(f"Player {self.players[self.current_player]}'s move (1-9 or 'q' to quit): ")
+                if move.lower() == 'q':
                     break
 
-            except ValueError as e:
-                print(f"\n\033[1;31m⚠️ Error: {e}\033[0m")
-            except KeyboardInterrupt:
-                print("\n\033[1;33m\nGame interrupted. Goodbye!\033[0m")
-                sys.exit(0)
+            try:
+                pos = int(move)
+                if not self.make_move(pos):
+                    print("Invalid move. Try again.")
+                    continue
+            except ValueError:
+                print("Please enter a number 1-9")
+                continue
+
+            if winner := self.check_winner():
+                self.display_board()
+                msg = "It's a tie!" if winner == 'tie' else f"Player {winner} wins!"
+                print(msg)
+                self.scores[winner] += 1
+                
+                if input("Play again? (y/n): ").lower() == 'y':
+                    self.reset()
+                    self.current_player = 0
+                    continue
+                break
+            
+            self.current_player = 1 - self.current_player
 
 if __name__ == "__main__":
-    try:
-        mode = input("Play vs AI? (y/n): ").lower() == 'y'
-        TicTacToe(vs_ai=mode).play()
-    except Exception as e:
-        print(f"\n\033[1;31m💥 Critical error: {e}\033[0m")
-        sys.exit(1)
+    game = TicTacToe(vs_ai=input("Play vs AI? (y/n): ").lower() == 'y')
+    game.play()
